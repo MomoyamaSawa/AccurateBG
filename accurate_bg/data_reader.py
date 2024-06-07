@@ -12,6 +12,7 @@ import pandas as pd
 class DataReader(object):
     """
     Read continuous glucose data
+    读取和解析连续血糖监测系统（CGMS）数据文件。该类支持多种数据格式，并根据提供的采样间隔将数据组织成时间序列。以下是类的详细功能和每个方法的作用：
     """
 
     def __init__(self, fmt, filepath, sampling_interval):
@@ -34,6 +35,7 @@ class DataReader(object):
     def read(self):
         """
         return a list of list, where each sublist is the glucose history patients every 5-min
+        read: 根据数据格式调用相应的读取方法。支持的数据格式包括direcnet, VA, VA1, VA2, direcnet_pid和ohio
         """
         if self.fmt == "direcnet":
             return self.read_direcnet()

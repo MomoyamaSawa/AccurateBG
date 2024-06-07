@@ -7,15 +7,24 @@ from sklearn.model_selection import KFold
 
 
 def hyperglycemia(x, threshold=1.8):
+    """
+    将输入的血糖值分类为高血糖（>= threshold）和非高血糖（< threshold）。
+    """
     return np.hstack((x >= threshold, x < threshold)).astype(np.float32)
 
 
 def hypoglycemia(x, threshold=0.7):
     # threshold can be set to 0.54 suggested by Dr. Mantzoros
+    """
+    将输入的血糖值分类为低血糖（<= threshold）和非低血糖（> threshold）。
+    """
     return np.hstack((x <= threshold, x > threshold)).astype(np.float32)
 
 
 def threeclasses(x, th_min=0.7, th_max=1.8):
+    """
+    ：将输入的血糖值分类为低血糖、正常和高血糖三个类别。
+    """
     def safe(x):
         return [x[0] < th_max and x[0] > th_min]
 
@@ -25,10 +34,16 @@ def threeclasses(x, th_min=0.7, th_max=1.8):
 
 
 def accuracy(y_true, y_pred):
+    """
+    计算预测值y_pred与真实值y_true之间的分类准确性。
+    """
     return np.mean(np.equal(np.argmax(y_pred, axis=-1), np.argmax(y_true, axis=-1)))
 
 
 def read_patient_info():
+    """
+    从Excel文件读取患者信息，并根据群组（控制组和非控制组）进行分组。
+    """
     df = pd.read_excel(
         open("../data/CGMdataCSMcomplete_update.xlsx", "rb"), sheet_name="Demographics"
     )
@@ -38,6 +53,9 @@ def read_patient_info():
 
 
 def read_direcnet_patient_info():
+    """
+    从CSV文件读取direcnet患者信息，并根据是否患有1型糖尿病进行分组。
+    """
     df = pd.read_csv("../data/tblAScreening.csv")
     df2 = pd.read_csv("../data/tblALab.csv")
     df = df.merge(df2, on="PtID")
@@ -46,6 +64,9 @@ def read_direcnet_patient_info():
 
 
 def groupby_meds():
+    """
+    根据患者的用药情况将糖尿病患者分为三组：未用药、使用胰岛素和使用其他药物。
+    """
     control, diabetic = read_patient_info()
     cat1 = ["no dm meds", np.nan, "none"]
     cat2 = ["insulin", "lantus", "novolin", "hum"]
@@ -73,6 +94,13 @@ def groupby_meds():
 
 
 def runner(learner, argv, transfer=None, outtype="Same", cut_point=50, label="data"):
+    """
+    读取患者信息并初始化低精度数据集。
+    遍历每个患者ID，初始化和重置高精度数据集。
+    并行调用学习器函数进行模型训练和评估。
+    如果有传递学习器函数，进一步微调模型并评估。
+    将结果写入文件。
+    """
     # 'Same' for regressor; 'None' for classifier
     _, diabetic = read_patient_info()
     pids = list(diabetic["Patient ID"])
@@ -168,6 +196,13 @@ def runner(learner, argv, transfer=None, outtype="Same", cut_point=50, label="da
 def hierarchical_runner(
     learner, argv, transfer=None, outtype="Same", cut_point=50, label="data", throw=5
 ):
+    """
+    读取患者信息并初始化低精度数据集。
+    存储所有患者的数据，处理不同格式的数据文件。
+    计算交叉验证的折数并初始化交叉验证器。
+    对每个交叉验证折数进行训练和测试，通过调用学习器和传递学习器（如果有的话）进行模型评估。
+    将结果写入文件。
+    """
     # 'Same' for regressor; 'None' for classifier
     _, diabetic = read_patient_info()
     pids = list(diabetic["Patient ID"])
@@ -264,6 +299,15 @@ def hierarchical_runner(
 def native_runner(
     learner, argv, transfer=None, outtype="Same", cut_point=50, label="data"
 ):
+    """
+    读取患者信息并选择患者ID。
+    存储所有患者的数据，处理不同格式的数据文件。
+    对每个患者ID进行模型训练和测试：
+    其他患者的数据作为训练数据。
+    当前患者的数据作为测试数据。
+    调用学习器和传递学习器（如果有的话）进行模型训练和评估。
+    将结果写入文件。
+    """
     # 'Same' for regressor; 'None' for classifier
     # nomed, insulin, other = groupby_meds()
     _, allp = read_patient_info()
@@ -354,6 +398,16 @@ def native_runner(
 def feature_runner(
     learner, argv, transfer=None, outtype="Same", cut_point=50, label="data"
 ):
+    """
+    读取患者信息并选择患者ID。
+    存储所有患者的数据和特征（如BMI、性别、HbA1c）。
+    对每个患者ID进行模型训练和测试：
+    其他患者的数据作为训练数据，并附加特征。
+    当前患者的数据作为测试数据，并附加特征。
+    调用学习器和传递学习器（如果有的话）进行模型训练和评估。
+    将结果写入文件。
+    该函数提供了一种更复杂的方法来处理CGMS数据的机器学习任务，特别适用于考虑额外特征（如BMI等）的个性化医疗数据分析和模型评估。
+    """
     # 'Same' for regressor; 'None' for classifier
     nomed, insulin, other = groupby_meds()
     _, t2d = read_patient_info()
@@ -551,6 +605,9 @@ def hierarchical_feature_runner(
 
 
 if __name__ == "__main__":
+    """
+    这段代码用于将经过groupby_meds函数分组后的患者信息保存到一个新的Excel文件中。具体来说，它将未用药的患者、使用胰岛素的患者和使用其他药物的患者分别保存到Excel文件的不同工作表中。
+    """
     no_med, insulin, other = groupby_meds()
     with pd.ExcelWriter("CGMdata_meds.xlsx") as writer:
         no_med.to_excel(writer, sheet_name="no_med", index=False)

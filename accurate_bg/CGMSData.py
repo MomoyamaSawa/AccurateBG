@@ -13,6 +13,14 @@ class CGMSData(object):
     """Data set"""
 
     def __init__(self, fmt, filepath, sampling_interval):
+        """
+        self.interval：时间间隔，使用datetime.timedelta表示。
+        reader：一个DataReader实例，用于读取指定格式和路径的数据。
+        self.raw_data和self.data：原始数据和处理后的数据。
+        self.sampling_horizon和self.prediction_horizon：采样时长和预测时长。
+        self.scale和self.train_test_ratio：数据缩放比例和训练测试数据比例。
+        其他属性用于存储训练和测试数据集及其相关信息。
+        """
         self.interval = datetime.timedelta(minutes=sampling_interval)
         reader = DataReader(fmt, filepath, self.interval)
         self.raw_data = reader.read()
@@ -28,12 +36,18 @@ class CGMSData(object):
         self.train_idx = None
 
     def _smooth(self, window_length, polyorder):
+        """
+        使用Savitzky-Golay滤波器对数据进行平滑处理。
+        """
         self.data = map(
             lambda x: signal.savgol_filter(x, window_length, polyorder),
             filter(lambda x: x.size > window_length, self.raw_data),
         )
 
     def _cut_point(self):
+        """
+        根据训练和测试比例划分数据集的切点。
+        """
         s = list(map(lambda d: d.size, self.data))
         s = np.cumsum(s)
         if np.isinf(self.train_test_ratio):
@@ -43,6 +57,9 @@ class CGMSData(object):
         return max(np.searchsorted(s, c, side="right"), 1)
 
     def _build_dataset(self, beg, end, padding):
+        """
+        根据不同的padding选项构建数据集。
+        """
         print(f"Requesting data from {beg} to {end}")
         x, y = [], []
         l = self.sampling_horizon + self.prediction_horizon
@@ -63,6 +80,9 @@ class CGMSData(object):
         raise ValueError("Unsupported padding " + padding)
 
     def _scale(self, standardize):
+        """ "
+        对数据进行标准化或按比例缩放。
+        """
         if standardize:
             # mean and std of training data of OhioT1DM, Bevan
             mean = 158.288
@@ -87,6 +107,9 @@ class CGMSData(object):
         padding,
         target_weight,
     ):
+        """
+        重置数据集，设置各种参数，并构建训练和测试数据集。
+        """
         self.sampling_horizon = sampling_horizon
         self.prediction_horizon = prediction_horizon
         self.scale = scale
@@ -116,12 +139,18 @@ class CGMSData(object):
         self.train_idx = np.random.permutation(self.train_n)
 
     def t0_baseline(self):
+        """
+        计算基线模型的均方根误差。
+        """
         y = self.test_y
         if y.ndim == 2:
             y = y[:, -1]
         return mean_squared_error(y, self.test_x[:, -1]) ** 0.5 / self.scale
 
     def train_next_batch(self, batch_size):
+        """
+        获取下一个训练批次的数据。
+        """
         if self.train_idx.size < batch_size:
             self.train_idx = np.random.permutation(self.train_n)
         idx = self.train_idx[:batch_size]
@@ -129,6 +158,9 @@ class CGMSData(object):
         return self.train_x[idx], self.train_y[idx], self.train_weights
 
     def test(self):
+        """
+        返回测试数据集。
+        """
         weights = None
         if self.train_weights is not None:
             weights = np.zeros_like(self.train_y[0])
@@ -136,6 +168,9 @@ class CGMSData(object):
         return self.test_x, self.test_y, weights
 
     def render_data(self, n=3):
+        """
+        可视化数据
+        """
         plt.figure()
         for d in self.data[:n]:
             plt.plot(d)
@@ -168,6 +203,9 @@ class CGMSData(object):
         plt.show()
 
     def test_patient(self, ptid=-1):
+        """
+        指定测试病人的数据。
+        """
         x = []
         while self.data[ptid].size < (self.sampling_horizon + self.prediction_horizon):
             ptid -= 1
@@ -177,6 +215,9 @@ class CGMSData(object):
         return ptid, np.array(x) * self.scale
 
     def render_prediction(self, ptid, y, yerr=None, show=False):
+        """
+        绘制预测结果
+        """
         plt.figure()
         plt.plot(self.data[ptid], "bo-", label="Truth")
         x = np.arange(y.size) + (self.sampling_horizon + self.prediction_horizon - 1)

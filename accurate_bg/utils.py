@@ -6,6 +6,9 @@ from sklearn.metrics import confusion_matrix
 
 
 def get_result(l_type="mae", ph=6, ind=0, path="ohio_results", standard=True):
+    """
+    计算并返回不同患者的预测结果，包括平均绝对误差（MAE）和均方根误差（RMSE）。
+    """
     path = f"{path}/ph_{ph}_{l_type}"
     # pids = [552, 544, 567, 584, 596, 559,
     #       563, 570, 588, 575, 591, 540]
@@ -40,6 +43,9 @@ def get_result(l_type="mae", ph=6, ind=0, path="ohio_results", standard=True):
 
 
 def get_pbp_result(l_type="mse", ph=6, ind=2, path="ohio_results", standard=True):
+    """
+    计算并返回所有患者的逐点预测结果的MAE和RMSE。
+    """
     path = f"{path}/ph_{ph}_{l_type}"
     # pids = [552, 544, 567, 584, 596, 559,
     #       563, 570, 588, 575, 591, 540]
@@ -66,6 +72,9 @@ def get_pbp_result(l_type="mse", ph=6, ind=2, path="ohio_results", standard=True
 
 
 def compare_result(l_type):
+    """
+    将当前模型的结果与其他模型的结果进行比较，并按不同指标排序。
+    """
     path = "../ohio_results/challenge.csv"
     df = pd.read_csv(path)
     mae1, rmse1 = get_pbp_result(l_type, 6)
@@ -100,6 +109,9 @@ def compare_result(l_type):
 def compare_only_bg_result(
     l_type="mae", transfer=2, path="../ohio_results", standard=True
 ):
+    """
+    比较当前模型与其他模型的BG（血糖）预测结果。
+    """
     res_30 = get_result(l_type, 6, transfer, path, standard)
     res_60 = get_result(l_type, 12, transfer, path, standard)
     res = pd.merge(res_30, res_60, how="left", on="PID")
@@ -118,6 +130,9 @@ def compare_only_bg_result(
 
 
 def check_classification(path, ind=2, standard=True, threshold=80):
+    """
+    检查分类结果，包括准确率、敏感性、精确率和F1得分。
+    """
     pids = [
         540,
         544,
@@ -153,6 +168,9 @@ def check_classification(path, ind=2, standard=True, threshold=80):
 
 
 def main():
+    """
+    主函数，执行一系列预定义的函数调用来评估和比较模型的性能。
+    """
     # get_pbp_result()
     import sys
 

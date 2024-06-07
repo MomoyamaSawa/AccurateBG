@@ -9,6 +9,18 @@ class CGMSDataSeg(CGMSData):
     """Data set"""
 
     def __init__(self, fmt, filepath, sampling_interval):
+        """
+        fmt, filepath, sampling_interval：初始化参数，用于指定数据格式、文件路径和采样间隔。
+        _feature：特征数据。
+        _hypo_th：低血糖阈值，默认为80。
+        _border_th：边界阈值，默认为10。
+        _hypo_train_x, _hypo_train_y：低血糖训练数据。
+        border_train_x, border_train_y：边界训练数据。
+        _nonhypo_train_x, _nonhypo_train_y：非低血糖训练数据。
+        _original_train_x, _original_train_y：原始训练数据。
+        gan_data：GAN生成的数据。
+        alpha：用于数据混合的参数
+        """
         super().__init__(fmt, filepath, sampling_interval)
         self._feature = None
         self._hypo_th = 80
@@ -25,6 +37,11 @@ class CGMSDataSeg(CGMSData):
         self.alpha = 0.4
 
     def _build_dataset(self, beg, end, padding):
+        """
+        _build_dataset方法构建从beg到end的数据集。
+        x和y分别存储特征和标签数据。
+        根据不同的padding选项，生成不同形式的标签数据。
+        """
         print(f"Building dataset, requesting data from {beg} to {end}")
         x, y = [], []
         l = self.sampling_horizon + self.prediction_horizon
@@ -72,6 +89,13 @@ class CGMSDataSeg(CGMSData):
         target_weight,
         standardize=False,
     ):
+        """
+        reset方法用于重置数据集，设置采样时长、预测时长、缩放比例、训练测试比例等参数。
+        构建数据集，划分训练和测试数据，并进行平滑处理（如果需要）。
+        检测低血糖数据，并将其分为低血糖、边界和非低血糖数据。
+        打印数据结构摘要信息。
+        调用_scale方法进行数据标准化（如果需要）。
+        """
         self.sampling_horizon = sampling_horizon
         self.prediction_horizon = prediction_horizon
         self.scale = scale
@@ -238,6 +262,9 @@ class CGMSDataSeg(CGMSData):
         print("after GAN generator, {} train data".format(self.train_n))
 
     def plot_hist(self, padding):
+        """
+        plot_hist方法绘制训练数据的分布直方图，以可视化数据分布。
+        """
         plt.figure()
         if padding == "Same":
             plt.hist(self.train_y[:, 0])

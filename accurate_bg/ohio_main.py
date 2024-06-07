@@ -9,7 +9,11 @@ from data_reader import DataReader
 
 
 def personalized_train_ohio(epoch, ph, path="../output"):
+    """
+    用于个性化训练模型。函数接受三个参数：epoch（训练轮数），ph（预测时长），和path（输出路径）。
+    """
     # read in all patients data
+    # 数据读取和处理，读取2018年和2020年各个病人的训练数据，并存储在字典train_data中。
     pid_2018 = [559, 563, 570, 588, 575, 591]
     pid_2020 = [540, 552, 544, 567, 584, 596]
     pid_year = {2018: pid_2018, 2020: pid_2020}
@@ -22,6 +26,7 @@ def personalized_train_ohio(epoch, ph, path="../output"):
             )
             train_data[pid] = reader.read()
     # add test data of 2018 patient
+    # 测试数据处理，读取2018年各个病人的测试数据，并存储在列表test_data_2018中。
     use_2018_test = True
     standard = False  # do not use standard
     test_data_2018 = []
@@ -32,6 +37,7 @@ def personalized_train_ohio(epoch, ph, path="../output"):
         test_data_2018 += reader.read()
 
     # a dumb dataset instance
+    # 数据集实例化，创建一个虚拟的train_dataset实例，用于后续的训练过程。设置一些基本参数如sampling_horizon, prediction_horizon, scale, 和outtype。
     train_dataset = CGMSDataSeg(
         "ohio", "../data/OhioT1DM/2018/train/559-ws-training.xml", 5
     )
@@ -41,6 +47,7 @@ def personalized_train_ohio(epoch, ph, path="../output"):
     outtype = "Same"
     # train on training dataset
     # k_size, nblock, nn_size, nn_layer, learning_rate, batch_size, epoch, beta
+    # 读取配置文件，超参数
     with open(os.path.join(path, "config.json")) as json_file:
         config = json.load(json_file)
     argv = (
@@ -55,6 +62,7 @@ def personalized_train_ohio(epoch, ph, path="../output"):
     )
     l_type = config["loss"]
     # test on patients data
+    # 训练和测试模型
     outdir = os.path.join(path, f"ph_{prediction_horizon}_{l_type}")
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -85,8 +93,10 @@ def personalized_train_ohio(epoch, ph, path="../output"):
                 1,
                 standard,
             )
+            # 训练
             regressor(train_dataset, *argv, l_type, outdir)
             # fine-tune on personal data
+            # 微调
             target_test_dataset = CGMSDataSeg(
                 "ohio", f"../data/OhioT1DM/{year}/test/{pid}-ws-testing.xml", 5
             )
@@ -120,6 +130,7 @@ def personalized_train_ohio(epoch, ph, path="../output"):
             errs = [err]
             transfer_res = [labels]
             for i in range(1, 4):
+                # 训练微调模型力
                 err, labels = regressor_transfer(
                     target_train_dataset,
                     target_test_dataset,
@@ -142,6 +153,9 @@ def personalized_train_ohio(epoch, ph, path="../output"):
 
 
 def main():
+    """
+    解析命令行参数，并调用personalized_train_ohio函数。
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--epoch", type=int, default=2)
     parser.add_argument("--prediction_horizon", type=int, default=6)
