@@ -134,3 +134,5 @@ pretrain.*
 checkpoint
 *.txt
 data/
+
+OhioT1DM/
